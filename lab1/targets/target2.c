@@ -11,8 +11,9 @@ foo ( char *arg )
 	len = strlen(arg);
 	if (len > 272) len = 272;
   
-	for (i = 0; i <= len; i++)
+	for (i = 0; i <= len; i++){
 		buf[i] = arg[i];
+	}
 
 	return (0);
 }
