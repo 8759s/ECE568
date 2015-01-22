@@ -3,7 +3,7 @@ CC := gcc
 RM := rm -f
 
 # flags
-CFLAGS := -ggdb
+CFLAGS := -ggdb -pthread -zexecstack -fno-stack-protector # Changed for my local machine
 LDFLAGS :=
 LDLIBS :=
 
