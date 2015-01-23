@@ -13,6 +13,7 @@ foo ( char *arg )
   
 	for (i = 0; i <= len; i++){
 		buf[i] = arg[i];
+		printf("i = %d, len = %d\n", i ,len);
 	}
 
 	return (0);

