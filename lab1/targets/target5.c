@@ -13,8 +13,7 @@ foo ( char *arg )
 	// of it when feeding it into snprintf(...)
 	
 	memcpy(formatString, arg, 256);
-	snprintf(buf, sizeof(buf), &formatString[60]);
-	printf(buf);
+	snprintf(buf, sizeof(buf), &formatString[60]);	
 
 	return (0);
 }

