@@ -4,9 +4,6 @@
 #include <unistd.h>
 #include "shellcode-64.h"
 
-#include <stdint.h>
-#include <byteswap.h>
-
 #define TARGET "../targets/target1"
 
 int
