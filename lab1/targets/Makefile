@@ -3,7 +3,7 @@ CC := gcc
 RM := rm -f
 
 # flags
-CFLAGS := -ggdb -pthread -zexecstack -fno-stack-protector # Changed for my local machine
+CFLAGS := -ggdb
 LDFLAGS :=
 LDLIBS :=
 
@@ -39,4 +39,3 @@ target6 : tmalloc.o target6.o $(support:.c=.o)
 
 clean:
 	$(RM) $(targets) $(sources:.c=.o) $(support:.c=.o) tmalloc.o
-
