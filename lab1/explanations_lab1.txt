@@ -1,8 +1,0 @@
-#Yuki Saito, 997981732, mintyplanet@gmail.com
-#Vishrant Vasavada, 1000209320, v.vasavada@mail.utoronto.ca
-
-sploit2
-The vulnerability in target2 is that is it allowed to copy a maximum of 272 bytes from arg to buf when buf is only allocated 256 bytes. Hence, we can overwrite the variables i and len. The return address is 280 bytes away from the buffer. To continue the iteration, we overwrite the value of len to 283. Now, len is calculated through strlen and so we need to get rid of NULL in our exploit string. To get around the inevitable NULL we need to overwrite len, we put second half of our exploit string in env.
-
-sploit3
-The vulnerability in target3 is similar to that in target1. It copies string up to maximum of 88 bytes from arg to targ when targ can only hold 64 bytes. The return address of lab_main is 72 bytes away from targ. Since it starts with AAAA, we add few NOP, shellcode, again few NOP to pad it and then address of targ to overwrite return address.
