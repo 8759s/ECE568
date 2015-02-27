@@ -1,3 +1,6 @@
+I have put SSL context intialization and SSL erros and routine in common.c as in the sample code (http://www.rtfm.com/openssl-examples/). Use/modify that file for server implementation. 
+
+=========================================================
 I created some key/cert pairs in the sslcert directory.
 
 I noted the commands I used to generate these keys in:
