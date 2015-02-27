@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "common.h"
+
 #define HOST "localhost"
 #define PORT 8765
 
@@ -19,6 +21,48 @@
 #define FMT_EMAIL_MISMATCH "ECE568-CLIENT: Server Email doesn't match\n"
 #define FMT_NO_VERIFY "ECE568-CLIENT: Certificate does not verify\n"
 #define FMT_INCORRECT_CLOSE "ECE568-CLIENT: Premature close\n"
+
+#define PASSWORD "password"
+#define KEY_FILE_PATH "alice.pem"
+#define EXPECTED_HOST_NAME "Bob's server"
+#define EXPECTED_SERVER_EMAIL "ece568bob@ecf.utoronto.ca"
+
+static char *ciphers=0;
+
+/* Check that the common name and email matches the host name and email */
+void check_cert(ssl, host, email)
+	SSL *ssl;
+	char *host;
+	char *email;
+	{
+		X509 *peer;
+		char peer_CN[256];
+		char peer_EM[256];
+
+		if(SSL_get_verify_result(ssl) != X509_V_OK){
+			berr_exit(FMT_NO_VERIFY);
+		}
+
+		/* Check the cert chain. The chain length is 
+ 		 * automatically checked by OpenSSL when we set
+ 		 * the verify depth in ctx
+ 		 */
+
+		/* Check the common name */
+		peer = SSL_get_peer_certificate(ssl);
+		X509_NAME_get_text_by_NID
+			(X509_get_subject_name(peer),
+			NID_commonName, peer_CN, 256);
+		if(strcasecmp(peer_CN, host))
+		err_exit(FMT_CN_MISMATCH);
+
+		X509_NAME_get_text_by_NID
+			(X509_get_subject_name(peer),
+			NID_pkcs9_emailAddress, peer_EM, 256);
+
+		if(strcasecmp(peer_EM, email))
+		err_exit(FMT_EMAIL_MISMATCH);		
+	}
 
 int main(int argc, char **argv)
 {
@@ -37,6 +81,7 @@ int main(int argc, char **argv)
     case 3:
       host = argv[1];
       port=atoi(argv[2]);
+			ciphers = "SHA1";
       if (port<1||port>65535){
 	fprintf(stderr,"invalid port number");
 	exit(0);
@@ -69,14 +114,45 @@ int main(int argc, char **argv)
     perror("socket");
   if(connect(sock,(struct sockaddr *)&addr, sizeof(addr))<0)
     perror("connect");
+	
+	SSL_CTX *ctx;
+	SSL *ssl;
+	BIO *sbio;
+	
+	/* Build our SSL Context */
+	ctx = initialize_ctx(KEY_FILE_PATH, PASSWORD);
+	
+	// we have already established TCP_CONNECT
+	
+	/* Only communicate via SSLv3 or TLSv1 */
+	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2);
+
+	/* Set our cipher list */
+	if(ciphers){
+		SSL_CTX_set_cipher_list(ctx, ciphers);
+	}
+
+	/* Connect the SSL socket */
+	ssl = SSL_new(ctx);
+	sbio = BIO_new_socket(sock, BIO_NOCLOSE);
+	SSL_set_bio(ssl, sbio, sbio);
+
+	if (SSL_connect(ssl) <= 0){
+		berr_exit(FMT_CONNECT_ERR);	
+	}
+
+	check_cert(ssl, EXPECTED_HOST_NAME, EXPECTED_SERVER_EMAIL);
+	
+
   
-  send(sock, secret, strlen(secret),0);
-  len = recv(sock, &buf, 255, 0);
-  buf[len]='\0';
+//  send(sock, secret, strlen(secret),0);
+//  len = recv(sock, &buf, 255, 0);
+//  buf[len]='\0';
   
   /* this is how you output something for the marker to pick up */
-  printf(FMT_OUTPUT, secret, buf);
+//  printf(FMT_OUTPUT, secret, buf);
   
-  close(sock);
+//  close(sock);
   return 1;
 }
+
