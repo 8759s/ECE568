@@ -1,0 +1,16 @@
+I created some key/cert pairs in the sslcert directory.
+
+I noted the commands I used to generate these keys in:
+sslcert/cert.sh
+
+
+sslcert/568ca.pem              - CA certificate
+sslcert/private/568key.pem     - CA key (password is "password")
+
+# cert/key pair for Alice
+sslcert/certs/alice.pem
+sslcert/private/alice.pem
+
+# cert/key pair for Bob
+sslcert/certs/bob.pem
+sslcert/private/bob.pem
