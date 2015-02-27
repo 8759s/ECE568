@@ -16,6 +16,7 @@
 
 #include <openssl/ssl.h>
 
+#define BUFSIZZ 256
 #define CA_LIST "568ca.pem"
 #define HOST	"localhost"
 

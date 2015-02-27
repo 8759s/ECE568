@@ -29,6 +29,64 @@
 
 static char *ciphers=0;
 
+static int http_request(ssl, secret, buf)
+	SSL *ssl;
+	char *secret;
+	char *buf;
+	{
+
+		int r;
+		int len, request_len;
+	
+		/* Now construct our HTTP Request */
+		request_len = strlen(secret);
+		
+		r = SSL_write(ssl, secret, request_len);
+		switch(SSL_get_error(ssl, r)){
+			case SSL_ERROR_NONE:
+				if (request_len != r)
+					err_exit("Incomplete write!");
+				break;
+				default:
+					berr_exit("SSL write problem");				
+		}
+
+		/* Now read the server's response, assuming
+     * that it's terminated by a close */
+		while(1){
+			r = SSL_read(ssl, buf, BUFSIZZ);
+			switch(SSL_get_error(ssl, r)){
+				case SSL_ERROR_NONE:
+					len = r;
+					break;
+				case SSL_ERROR_WANT_READ:
+					continue;
+				case SSL_ERROR_ZERO_RETURN:
+					goto shutdown;
+				case SSL_ERROR_SYSCALL:
+					fprintf(stderr, FMT_INCORRECT_CLOSE);
+					goto done;
+				default:
+					berr_exit("SSL read problem"); 
+			}
+		}
+
+		shutdown:
+			r = SSL_shutdown(ssl);
+			switch(r){
+				case 1:
+					break; /* Success */
+				case 0:
+				case -1:
+				default:
+					berr_exit("Shutdown failed");
+			}
+
+		done:
+			SSL_free(ssl);
+			return 0;
+	}
+
 /* Check that the common name and email matches the host name and email */
 void check_cert(ssl, host, email)
 	SSL *ssl;
@@ -66,7 +124,7 @@ void check_cert(ssl, host, email)
 
 int main(int argc, char **argv)
 {
-  int len, sock, port=PORT;
+  int sock, port=PORT;
   char *host=HOST;
   struct sockaddr_in addr;
   struct hostent *host_entry;
@@ -143,7 +201,8 @@ int main(int argc, char **argv)
 
 	check_cert(ssl, EXPECTED_HOST_NAME, EXPECTED_SERVER_EMAIL);
 	
-
+	/* Now make our HTTP request */
+	http_request(ssl, secret, buf);
   
 //  send(sock, secret, strlen(secret),0);
 //  len = recv(sock, &buf, 255, 0);
