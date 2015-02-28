@@ -15,8 +15,8 @@ all: $(targets)
 client: client.o common.o
 	$(CC) $(LDFLAGS) -o client client.o common.o
 
-server: server.o
-	$(CC) $(LDFLAGS) -o server server.o
+server: server.o common.o
+	$(CC) $(LDFLAGS) -o server server.o common.o
 
 common: common.o
 	$(CC) $(LDFLAGS) -o common common.o
