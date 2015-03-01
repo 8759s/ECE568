@@ -29,7 +29,7 @@
 
 static char *ciphers=0;
 
-static int http_request(ssl, secret, buf)
+static int handle_request(ssl, secret, buf)
 	SSL *ssl;
 	char *secret;
 	char *buf;
@@ -38,7 +38,7 @@ static int http_request(ssl, secret, buf)
 		int r;
 		int len, request_len;
 	
-		/* Now construct our HTTP Request */
+		/* Now construct our Request */
 		request_len = strlen(secret);
 		
 		r = SSL_write(ssl, secret, request_len);
@@ -201,8 +201,8 @@ int main(int argc, char **argv)
 
 	check_cert(ssl, EXPECTED_HOST_NAME, EXPECTED_SERVER_EMAIL);
 	
-	/* Now make our HTTP request */
-	http_request(ssl, secret, buf);
+	/* Now make our request */
+	handle_request(ssl, secret, buf);
   
 //  send(sock, secret, strlen(secret),0);
 //  len = recv(sock, &buf, 255, 0);
