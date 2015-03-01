@@ -1,0 +1,13 @@
+#Yuki Saito, 997981732, mintyplanet@gmail.com
+#Vishrant Vasavada, 1000209320, v.vasavada@mail.utoronto.ca
+
+We simply followed instructions in resorla-openssl tutorial. A lot of starter code was useful.
+
+Meeting the client specifications:
+
+1) TCP connection was already handled in the starter code and we decided to keep it as is.
+2) Communicating only with SSLv3 or TLSv1 was handled using SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2).
+3) By using SSL_CTX_set_cipher_list, we allowed client to only communicate with the SHA1 hash function with server.
+4) Common name, host and E-mails were checked inside check_cert function.
+5) Shutdown was properly handled with call SSL_shutdown and freeing the SSL.
+6) Also handled premature close with proper error messages after calling SSL_read and SSL_write.
