@@ -69,6 +69,7 @@ static int handle_request(ssl, secret, buf)
 				default:
 					berr_exit("SSL read problem"); 
 			}
+			buf[r]='\0';
 		}
 
 		shutdown:
@@ -209,7 +210,7 @@ int main(int argc, char **argv)
 //  buf[len]='\0';
   
   /* this is how you output something for the marker to pick up */
-//  printf(FMT_OUTPUT, secret, buf);
+  printf(FMT_OUTPUT, secret, buf);
   
 //  close(sock);
   return 1;
