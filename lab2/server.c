@@ -24,6 +24,7 @@
 #define EXPECTED_HOST_NAME "Alice's client"
 #define EXPECTED_CLIENT_EMAIL "ece568alice@ecf.utoronto.ca"
 
+
 int init_tcp_listen_socket(int port)
 {
 	struct sockaddr_in sin;
@@ -62,6 +63,8 @@ void serve_request(SSL * ssl)
 	int len;
 	char buf[256];
 	char *answer = "42";
+
+  //check_cert(ssl, EXPECTED_HOST_NAME, EXPECTED_CLIENT_EMAIL);
 
 	len = SSL_read(ssl, buf, 255);
 
@@ -111,6 +114,7 @@ void clean_up(int s, int sock, SSL * ssl)
 	close(sock);
 	close(s);
 }
+
 
 int main(int argc, char **argv)
 {

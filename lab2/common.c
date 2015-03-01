@@ -91,3 +91,38 @@ void destroy_ctx(ctx)
     SSL_CTX_free(ctx);
   }
 
+
+/* Check that the common name and email matches the host name and email */
+void check_cert(ssl, host, email)
+  SSL *ssl;
+  char *host;
+  char *email;
+  {
+    X509 *peer;
+    char peer_CN[256];
+    char peer_EM[256];
+
+    if(SSL_get_verify_result(ssl) != X509_V_OK){
+      berr_exit(FMT_NO_VERIFY);
+    }
+
+    /* Check the cert chain. The chain length is 
+     * automatically checked by OpenSSL when we set
+     * the verify depth in ctx
+     */
+
+    /* Check the common name */
+    peer = SSL_get_peer_certificate(ssl);
+    X509_NAME_get_text_by_NID
+      (X509_get_subject_name(peer),
+      NID_commonName, peer_CN, 256);
+    if(strcasecmp(peer_CN, host))
+    err_exit(FMT_CN_MISMATCH);
+
+    X509_NAME_get_text_by_NID
+      (X509_get_subject_name(peer),
+      NID_pkcs9_emailAddress, peer_EM, 256);
+
+    if(strcasecmp(peer_EM, email))
+    err_exit(FMT_EMAIL_MISMATCH);   
+  }
