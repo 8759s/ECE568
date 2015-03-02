@@ -25,7 +25,7 @@
 #define EXPECTED_CLIENT_EMAIL "ece568alice@ecf.utoronto.ca"
 
 
-int init_tcp_listen_socket(int port)
+static int init_tcp_listen_socket(int port)
 {
 	struct sockaddr_in sin;
 	int sock, val = 1;
@@ -57,15 +57,57 @@ int init_tcp_listen_socket(int port)
 	return sock;
 }
 
-void serve_request(SSL * ssl)
+
+/* Check that the common name and email matches the host name and email */
+void verify_client_cert(ssl, host, email)
+  SSL *ssl;
+  char *host;
+  char *email;
+  {
+    X509 *peer;
+    char peer_CN[256];
+    char peer_EM[256];
+
+    if(SSL_get_verify_result(ssl) != X509_V_OK){
+      berr_exit(FMT_NO_VERIFY);
+    }
+
+    /* Check the cert chain. The chain length is 
+     * automatically checked by OpenSSL when we set
+     * the verify depth in ctx
+     */
+
+    /* Check the common name */
+    peer = SSL_get_peer_certificate(ssl);
+    X509_NAME_get_text_by_NID
+      (X509_get_subject_name(peer),
+      NID_commonName, peer_CN, 256);
+  
+    if(strcasecmp(peer_CN, host))
+    err_exit(FMT_CN_MISMATCH);
+
+    X509_NAME_get_text_by_NID
+      (X509_get_subject_name(peer),
+      NID_pkcs9_emailAddress, peer_EM, 256);
+  
+    if(strcasecmp(peer_EM, email))
+    err_exit(FMT_EMAIL_MISMATCH);  
+
+    // Certificate is valid. Print CN & email address
+    printf(FMT_OUTPUT, peer_CN, peer_EM); 
+
+  }
+
+
+static void serve_request(SSL * ssl)
 {
 
 	int len;
 	char buf[256];
 	char *answer = "42";
 
-  //check_cert(ssl, EXPECTED_HOST_NAME, EXPECTED_CLIENT_EMAIL);
-
+    verify_client_cert(ssl, EXPECTED_HOST_NAME, EXPECTED_CLIENT_EMAIL);
+    	
 	len = SSL_read(ssl, buf, 255);
 
 	if (len < 0)
@@ -87,7 +129,7 @@ void serve_request(SSL * ssl)
 
 }
 
-void clean_up(int s, int sock, SSL * ssl)
+static void clean_up(int s, int sock, SSL * ssl)
 {
 
 	int r = SSL_shutdown(ssl);
@@ -141,6 +183,10 @@ int main(int argc, char **argv)
 
 	sock = init_tcp_listen_socket(port);
 	SSL_CTX *ctx = initialize_ctx(KEY_FILE_PATH, PASSWORD);
+
+	SSL_CTX_set_verify(ctx,
+	  SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE|SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+      NULL);
 
 	// reap child zombie processes after handling request
 	if (signal(SIGCHLD, SIG_IGN) == SIG_ERR) {
