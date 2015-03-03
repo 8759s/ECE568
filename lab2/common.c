@@ -43,9 +43,9 @@ SSL_CTX *initialize_ctx(keyfile,password)
   char *keyfile;
   char *password;
   {
-    SSL_METHOD *meth;
     SSL_CTX *ctx;
-    
+    const SSL_METHOD *meth=SSLv23_method();
+
     if(!bio_err){
       /* Global system initialization*/
       SSL_library_init();
@@ -59,7 +59,6 @@ SSL_CTX *initialize_ctx(keyfile,password)
     signal(SIGPIPE,sigpipe_handle);
     
     /* Create our context*/
-    meth=SSLv23_method();
     ctx=SSL_CTX_new(meth);
 
     /* Load our keys and certificates*/
@@ -78,9 +77,6 @@ SSL_CTX *initialize_ctx(keyfile,password)
     if(!(SSL_CTX_load_verify_locations(ctx,
       CA_LIST,0)))
       berr_exit("Can't read CA list");
-#if (OPENSSL_VERSION_NUMBER < 0x00905100L)
-    SSL_CTX_set_verify_depth(ctx,1);
-#endif
     
     return ctx;
   }

@@ -55,9 +55,8 @@ static int init_tcp_socket_to_host(char *host, int port){
 	return sock;
 
 }
-static int handle_request(SSL *ssl, char *secret, char *buf)
+static void handle_request(SSL *ssl, char *secret, char *buf)
 {
-
 	int r;
 	int len, request_len;
 
@@ -76,35 +75,11 @@ static int handle_request(SSL *ssl, char *secret, char *buf)
 
 	/* Now read the server's response, assuming
 	 * that it's terminated by a close */
-	while (1) {
-		r = SSL_read(ssl, buf, BUFSIZZ);
-		switch (SSL_get_error(ssl, r)) {
-		case SSL_ERROR_NONE:
-			len = r;
-			break;
-		case SSL_ERROR_WANT_READ:
-			continue;
-		case SSL_ERROR_ZERO_RETURN:
-			goto shutdown;
-		case SSL_ERROR_SYSCALL:
-			fprintf(stderr, FMT_INCORRECT_CLOSE);
-			goto done;
-		default:
-			berr_exit("SSL read problem");
-		}
-		buf[len] = '\0';
-	}
-
- shutdown:
-	r = SSL_shutdown(ssl);
-	if (r!=1){
-		//berr_exit("Shutdown failed");
-		err_exit(FMT_INCORRECT_CLOSE);
-	}
-
- done:
-	SSL_free(ssl);
-	return 0;
+	
+	len = SSL_read(ssl, buf, BUFSIZZ);
+	if (len < 0)
+		berr_exit("SSL read\n");
+	buf[len] = '\0';
 }
 
 
@@ -141,6 +116,28 @@ void verify_server_cert(SSL *ssl, char *host, char*email)
 	printf(FMT_SERVER_INFO, peer_CN, peer_EM, issuer_CN);
   }
 
+
+static void clean_up(int sock, SSL *ssl)
+{
+	int r = SSL_shutdown(ssl);
+	if (!r) {
+		/* If we called SSL_shutdown() first then
+		   we always get return value of '0'. In
+		   this case, try again, but first send a
+		   TCP FIN to trigger the other side's
+		   close_notify 
+			SHUT_WR => Shutdown write direction.
+		   */
+		shutdown(sock, SHUT_WR);
+		r = SSL_shutdown(ssl);
+	}
+
+	if (r != 1) {
+		err_exit(FMT_INCORRECT_CLOSE);
+	}
+	SSL_free(ssl);
+	close(sock);
+}
 
 int main(int argc, char **argv)
 {
@@ -202,6 +199,8 @@ int main(int argc, char **argv)
 	/* this is how you output something for the marker to pick up */
 	printf(FMT_OUTPUT, secret, buf);
 
-    close(sock);
+
+	clean_up(sock, ssl);
+    
 	return 0;
 }

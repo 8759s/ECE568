@@ -1,6 +1,9 @@
 #Yuki Saito, 997981732, mintyplanet@gmail.com
 #Vishrant Vasavada, 1000209320, v.vasavada@mail.utoronto.ca
 
+(Vishrant Vasavada has dropped the course)
+
+
 We simply followed instructions in resorla-openssl tutorial. A lot of starter code was useful.
 
 Meeting the client specifications:
