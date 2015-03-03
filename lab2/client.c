@@ -24,12 +24,38 @@
 #define EXPECTED_HOST_NAME "Bob's server"
 #define EXPECTED_SERVER_EMAIL "ece568bob@ecf.utoronto.ca"
 
-static char *ciphers = 0;
 
-static int handle_request(ssl, secret, buf)
-SSL *ssl;
-char *secret;
-char *buf;
+static int init_tcp_socket_to_host(char *host, int port){
+	struct sockaddr_in addr;
+	struct hostent *host_entry;
+	int sock;
+
+	/*get ip address of the host */
+	host_entry = gethostbyname(host);
+
+	if (!host_entry) {
+		fprintf(stderr, "Couldn't resolve host");
+		exit(0);
+	}
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_addr = *(struct in_addr *)host_entry->h_addr_list[0];
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+
+	printf("Connecting to %s(%s):%d\n", host, inet_ntoa(addr.sin_addr),
+	       port);
+
+	/*open socket */
+	if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+		perror("socket");
+	if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+		perror("connect");
+
+	return sock;
+
+}
+static int handle_request(SSL *ssl, char *secret, char *buf)
 {
 
 	int r;
@@ -66,18 +92,14 @@ char *buf;
 		default:
 			berr_exit("SSL read problem");
 		}
-		buf[r] = '\0';
+		buf[len] = '\0';
 	}
 
  shutdown:
 	r = SSL_shutdown(ssl);
-	switch (r) {
-	case 1:
-		break;		/* Success */
-	case 0:
-	case -1:
-	default:
-		berr_exit("Shutdown failed");
+	if (r!=1){
+		//berr_exit("Shutdown failed");
+		err_exit(FMT_INCORRECT_CLOSE);
 	}
 
  done:
@@ -87,39 +109,36 @@ char *buf;
 
 
 /* Check that the common name and email matches the host name and email */
-void check_cert(ssl, host, email)
-  SSL *ssl;
-  char *host;
-  char *email;
+void verify_server_cert(SSL *ssl, char *host, char*email)
   {
     X509 *peer;
     char peer_CN[256];
     char peer_EM[256];
+    char issuer_CN[256];
 
     if(SSL_get_verify_result(ssl) != X509_V_OK){
       berr_exit(FMT_NO_VERIFY);
     }
 
-    /* Check the cert chain. The chain length is 
-     * automatically checked by OpenSSL when we set
-     * the verify depth in ctx
-     */
-
     /* Check the common name */
     peer = SSL_get_peer_certificate(ssl);
-    X509_NAME_get_text_by_NID
-      (X509_get_subject_name(peer),
+    X509_NAME_get_text_by_NID(X509_get_subject_name(peer),
       NID_commonName, peer_CN, 256);
   
     if(strcasecmp(peer_CN, host))
     err_exit(FMT_CN_MISMATCH);
 
-    X509_NAME_get_text_by_NID
-      (X509_get_subject_name(peer),
+    X509_NAME_get_text_by_NID(X509_get_subject_name(peer),
       NID_pkcs9_emailAddress, peer_EM, 256);
   
     if(strcasecmp(peer_EM, email))
     err_exit(FMT_EMAIL_MISMATCH);
+
+	X509_NAME_get_text_by_NID(X509_get_issuer_name(peer),
+      NID_commonName, issuer_CN, 256);
+
+	// print CN, email, certificate issuer
+	printf(FMT_SERVER_INFO, peer_CN, peer_EM, issuer_CN);
   }
 
 
@@ -127,8 +146,6 @@ int main(int argc, char **argv)
 {
 	int sock, port = PORT;
 	char *host = HOST;
-	struct sockaddr_in addr;
-	struct hostent *host_entry;
 	char buf[256];
 	char *secret = "What's the question?";
 
@@ -140,7 +157,6 @@ int main(int argc, char **argv)
 	case 3:
 		host = argv[1];
 		port = atoi(argv[2]);
-		ciphers = "SHA1";
 		if (port < 1 || port > 65535) {
 			fprintf(stderr, "invalid port number");
 			exit(0);
@@ -151,29 +167,7 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 
-	/*get ip address of the host */
-
-	host_entry = gethostbyname(host);
-
-	if (!host_entry) {
-		fprintf(stderr, "Couldn't resolve host");
-		exit(0);
-	}
-
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_addr = *(struct in_addr *)host_entry->h_addr_list[0];
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-
-	printf("Connecting to %s(%s):%d\n", host, inet_ntoa(addr.sin_addr),
-	       port);
-
-	/*open socket */
-
-	if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-		perror("socket");
-	if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-		perror("connect");
+	sock = init_tcp_socket_to_host(host, port);
 
 	SSL_CTX *ctx;
 	SSL *ssl;
@@ -188,9 +182,8 @@ int main(int argc, char **argv)
 	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2);
 
 	/* Set our cipher list */
-	if (ciphers) {
-		SSL_CTX_set_cipher_list(ctx, ciphers);
-	}
+	SSL_CTX_set_cipher_list(ctx, "SHA1");
+
 
 	/* Connect the SSL socket */
 	ssl = SSL_new(ctx);
@@ -201,18 +194,14 @@ int main(int argc, char **argv)
 		berr_exit(FMT_CONNECT_ERR);
 	}
 
-	check_cert(ssl, EXPECTED_HOST_NAME, EXPECTED_SERVER_EMAIL);
+	verify_server_cert(ssl, EXPECTED_HOST_NAME, EXPECTED_SERVER_EMAIL);
 
 	/* Now make our request */
 	handle_request(ssl, secret, buf);
 
-//  send(sock, secret, strlen(secret),0);
-//  len = recv(sock, &buf, 255, 0);
-//  buf[len]='\0';
-
 	/* this is how you output something for the marker to pick up */
 	printf(FMT_OUTPUT, secret, buf);
 
-//  close(sock);
-	return 1;
+    close(sock);
+	return 0;
 }

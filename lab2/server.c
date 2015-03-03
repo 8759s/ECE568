@@ -72,22 +72,15 @@ void verify_client_cert(ssl, host, email)
       berr_exit(FMT_NO_VERIFY);
     }
 
-    /* Check the cert chain. The chain length is 
-     * automatically checked by OpenSSL when we set
-     * the verify depth in ctx
-     */
-
     /* Check the common name */
     peer = SSL_get_peer_certificate(ssl);
-    X509_NAME_get_text_by_NID
-      (X509_get_subject_name(peer),
+    X509_NAME_get_text_by_NID(X509_get_subject_name(peer),
       NID_commonName, peer_CN, 256);
   
     if(strcasecmp(peer_CN, host))
     err_exit(FMT_CN_MISMATCH);
 
-    X509_NAME_get_text_by_NID
-      (X509_get_subject_name(peer),
+    X509_NAME_get_text_by_NID(X509_get_subject_name(peer),
       NID_pkcs9_emailAddress, peer_EM, 256);
   
     if(strcasecmp(peer_EM, email))
@@ -99,19 +92,16 @@ void verify_client_cert(ssl, host, email)
   }
 
 
-static void serve_request(SSL * ssl)
+static void serve_request(SSL * ssl, char *answer)
 {
-
 	int len;
 	char buf[256];
-	char *answer = "42";
 
     verify_client_cert(ssl, EXPECTED_HOST_NAME, EXPECTED_CLIENT_EMAIL);
     	
 	len = SSL_read(ssl, buf, 255);
-
 	if (len < 0)
-		berr_exit("SSL gets\n");
+		berr_exit("SSL read\n");
 	buf[len] = '\0';
 
 	printf(FMT_OUTPUT, buf, answer);
@@ -131,25 +121,21 @@ static void serve_request(SSL * ssl)
 
 static void clean_up(int s, int sock, SSL * ssl)
 {
-
 	int r = SSL_shutdown(ssl);
 	if (!r) {
 		/* If we called SSL_shutdown() first then
 		   we always get return value of '0'. In
 		   this case, try again, but first send a
 		   TCP FIN to trigger the other side's
-		   close_notify */
-		shutdown(s, 1);
+		   close_notify 
+			SHUT_WR => Shutdown write direction.
+		   */
+		shutdown(s, SHUT_WR);
 		r = SSL_shutdown(ssl);
 	}
 
-	switch (r) {
-	case 1:
-		break;		/* Success */
-	case 0:
-	case -1:
-	default:
-		berr_exit("Shutdown failed");
+	if (r != 1) {
+		err_exit(FMT_INCOMPLETE_CLOSE);
 	}
 
 	SSL_free(ssl);
@@ -157,12 +143,12 @@ static void clean_up(int s, int sock, SSL * ssl)
 	close(s);
 }
 
-
 int main(int argc, char **argv)
 {
 	int s, sock;
 	pid_t pid;
 	int port = PORT;
+	char *answer = "42";
 
 	/*Parse command line arguments */
 
@@ -184,6 +170,11 @@ int main(int argc, char **argv)
 	sock = init_tcp_listen_socket(port);
 	SSL_CTX *ctx = initialize_ctx(KEY_FILE_PATH, PASSWORD);
 
+	// client test
+	//int r = SSL_CTX_set_cipher_list(ctx, "ALL:!SHA1");
+	
+
+	// Configure SSL server to ask for client certificate.
 	SSL_CTX_set_verify(ctx,
 	  SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE|SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
       NULL);
@@ -208,19 +199,16 @@ int main(int argc, char **argv)
 		if ((pid = fork())) {
 			close(s);
 		} else {
-			/*Child code */
-
+			/*Child code */			
 			BIO *sbio = BIO_new_socket(s, BIO_NOCLOSE);
 			SSL *ssl = SSL_new(ctx);
 			SSL_set_bio(ssl, sbio, sbio);
-
 			if ((SSL_accept(ssl) <= 0))
 				berr_exit("SSL accept error");
 
-			serve_request(ssl);
+			serve_request(ssl, answer);
 
 			clean_up(s, sock, ssl);
-
 			return 0;
 		}
 	}
